@@ -122,13 +122,26 @@
   .fl:empty{display:none}
   #evbar{position:sticky;top:var(--hh,106px);z-index:4;background:var(--bg);padding:8px 0 2px;border-bottom:1px solid var(--line);margin-bottom:12px}
   #evbar .top{margin-bottom:8px}
+  #ty{display:none;padding:16px}
+  body.types #ty{display:block}
+  body.types main,body.types .bar{display:none}
+  #tybar{position:sticky;top:var(--hh,106px);z-index:4;background:var(--bg);padding:8px 0 6px;border-bottom:1px solid var(--line);margin-bottom:12px}
+  #tytypes{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  #tytypes button{border:2px solid transparent;color:#fff;font-weight:600;text-transform:capitalize;padding:5px 12px;border-radius:16px;opacity:.55}
+  #tytypes button.on{opacity:1;border-color:var(--ink)}
+  #tytypes button small{font-weight:400;margin-left:4px;opacity:.9}
+  #tygrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .tg{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+  .tg span{display:inline-flex;align-items:center;gap:3px;border-radius:10px;padding:1px 8px 1px 2px;font-size:11px;color:#fff;background:var(--chip)}
+  .tg span img{width:18px;height:18px;object-fit:contain;background:rgba(255,255,255,.85);border-radius:50%}
+  .tb{display:inline-block;border-radius:8px;padding:0 6px;font-size:10px;font-weight:600;text-transform:capitalize;color:#fff;margin-left:2px}
   code{font-size:12px;word-break:break-all;color:var(--mute)}
 </style>
 </head>
 <body>
 <header>
   <h1>PokeLid Browser</h1>
-  <div class="tabs"><button id="tAll" class="on">All</button><button id="tDash">Dashboard</button><button id="tPoke">Pokémon</button><button id="tScheme">Color scheme</button><button id="tEvo">Evolution stage</button></div>
+  <div class="tabs"><button id="tAll" class="on">All</button><button id="tDash">Dashboard</button><button id="tPoke">Pokémon</button><button id="tScheme">Color scheme</button><button id="tEvo">Evolution stage</button><button id="tType">Type</button></div>
   <div class="bar">
     <input type="search" id="q" placeholder="Search Pokémon, place, prefecture…">
     <select id="region"><option value="">All regions</option></select>
@@ -150,6 +163,18 @@
 </header>
 <main id="grid"></main>
 <section id="dash"></section>
+<section id="ty">
+  <div id="tybar">
+    <div id="tytypes"></div>
+    <div class="top" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="tymode"><option value="any">Lid has ANY selected type</option><option value="all">Lid has ALL selected types</option></select>
+      <select id="tyn"><option value="">Any # of Pokémon</option><option value="1">1 Pokémon</option><option value="2">2 Pokémon</option><option value="3">3+ Pokémon</option></select>
+      <button id="tyclear">Clear</button>
+      <span class="count" id="tycount"></span>
+    </div>
+  </div>
+  <div id="tygrid"></div>
+</section>
 <section id="ev">
   <div id="evbar">
   <div class="top view"><b>View</b><button id="vTree" class="on">🌱 Evolution trees</button><button id="vList">Filter by stage</button></div>
@@ -241,7 +266,7 @@ function render(){
   $('grid').innerHTML = rows.map(cardHTML).join('');
 }
 document.addEventListener('click', e => {
-  if(!e.target.closest('#grid,#pkgrid,#csgrid,#evgrid,.fl')) return;
+  if(!e.target.closest('#grid,#pkgrid,#csgrid,#evgrid,#tygrid,.fl')) return;
   const c = e.target.closest('.card'); if(!c) return;
   const x = L.find(l=>l.serial==c.dataset.s); window.x_pal = x.palette;
   $('dlg').innerHTML = `<div class="in">
@@ -266,7 +291,7 @@ fillPref(); render();
 // ---- tabs + dashboard ----
 function setTab(t){
   document.body.classList.toggle('dashboard', t==='dash');
-  document.body.classList.toggle('pokemon', t==='poke'); document.body.classList.toggle('scheme', t==='scheme'); document.body.classList.toggle('evo', t==='evo'); $('tEvo').classList.toggle('on', t==='evo'); $('tScheme').classList.toggle('on', t==='scheme');
+  document.body.classList.toggle('pokemon', t==='poke'); document.body.classList.toggle('scheme', t==='scheme'); document.body.classList.toggle('evo', t==='evo'); document.body.classList.toggle('types', t==='types'); $('tType').classList.toggle('on', t==='types'); $('tEvo').classList.toggle('on', t==='evo'); $('tScheme').classList.toggle('on', t==='scheme');
   $('tAll').classList.toggle('on', t==='all'); $('tDash').classList.toggle('on', t==='dash'); $('tPoke').classList.toggle('on', t==='poke');
   try{localStorage.tab=t}catch(e){}
   if(window.syncHH) syncHH();
@@ -301,6 +326,29 @@ document.querySelectorAll('#ev [data-st]').forEach(b=>b.onclick=()=>{ const v=+b
 ['emode','egen','esort'].forEach(i=>$(i).oninput=evoRender);
 window.syncHH = () => document.documentElement.style.setProperty('--hh', document.querySelector('header').offsetHeight + 'px');
 syncHH(); addEventListener('resize', syncHH);
+// ---- type finder ----
+const TC = {normal:'#8a8a59',fire:'#e8631a',water:'#4a7fe0',electric:'#d9a900',grass:'#4aa83c',ice:'#4db8b8',fighting:'#b8281f',poison:'#9340a0',ground:'#c29a3a',flying:'#8472e0',psychic:'#e8457a',bug:'#8aa016',rock:'#9a8528',ghost:'#6a4c8a',dragon:'#5a2fe8',dark:'#5a463a',steel:'#7a7aa0',fairy:'#d46a95'};
+window.TC = TC;
+const lidTypes = x => new Set(x.pokemon.flatMap(p=>PINFO[p].types));
+L.forEach(x=>x.types=[...lidTypes(x)]);
+let tySel = new Set();
+const tyBadge = t => `<span class="tb" style="background:${TC[t]}">${t}</span>`;
+function tyRender(){
+  const mode=$('tymode').value, nn=$('tyn').value;
+  $('tytypes').innerHTML = Object.keys(TC).map(t=>`<button data-t="${t}" class="${tySel.has(t)?'on':''}" style="background:${TC[t]}">${t}<small>${L.filter(x=>x.types.includes(t)).length}</small></button>`).join('');
+  let rows = L.filter(x=>{
+    if(nn && (nn==='3' ? x.n<3 : x.n!=nn)) return false;
+    if(!tySel.size) return true;
+    const s=[...tySel]; return mode==='all' ? s.every(t=>x.types.includes(t)) : s.some(t=>x.types.includes(t));
+  });
+  $('tycount').textContent = rows.length+' / '+L.length+' lids';
+  $('tygrid').innerHTML = rows.map(x=>cardHTML(x).replace('<div class="pal">',
+    `<div class="tg">${x.pokemon.map(p=>`<span title="${p}"><img src="pokemon_thumbs/${PINFO[p].img}" alt="">${PINFO[p].types.map(tyBadge).join('')}</span>`).join('')}</div><div class="pal">`)).join('');
+}
+$('tytypes').onclick = e => { const b=e.target.closest('[data-t]'); if(!b) return; const t=b.dataset.t; tySel.has(t)?tySel.delete(t):tySel.add(t); tyRender(); };
+$('tyclear').onclick = () => { tySel.clear(); tyRender(); };
+['tymode','tyn'].forEach(i=>$(i).oninput=tyRender);
+$('tType').onclick = () => { setTab('types'); tyRender(); };
 // ---- evolution trees ----
 const FAMS = window.FAMS;
 const walk = function*(t){ yield t; for(const c of t.c) yield* walk(c); };
@@ -428,8 +476,8 @@ $('dash').onclick = e => {
   render(); setTab('all');
 };
 dashboard();
-schemeRender(); evoRender(); treeRender();
-try{ if(['dash','poke','scheme','evo'].includes(localStorage.tab)) setTab(localStorage.tab); }catch(e){}
+schemeRender(); evoRender(); treeRender(); tyRender();
+try{ if(['dash','poke','scheme','evo','types'].includes(localStorage.tab)) setTab(localStorage.tab); }catch(e){}
 </script>
 </body>
 </html>
