@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PokeLid Browser</title>
+<style>
+  :root{--bg:#f5f5f7;--card:#fff;--ink:#1d1d1f;--mute:#6e6e73;--line:#d9d9de;--acc:#d6336c;--chip:#eceef3}
+  @media (prefers-color-scheme:dark){:root{--bg:#141416;--card:#1f1f23;--ink:#f2f2f4;--mute:#9a9aa2;--line:#33333a;--acc:#ff6b9d;--chip:#2c2c33}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,Segoe UI,sans-serif}
+  header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:12px 16px}
+  h1{margin:0 0 10px;font-size:18px}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  input,select,button{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+  input[type=search]{min-width:220px;flex:1}
+  button{cursor:pointer}
+  button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  .count{margin-left:auto;color:var(--mute)}
+  main{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;padding:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer}
+  .card:hover{border-color:var(--acc)}
+  .img{background:#9a9aa0;aspect-ratio:1;display:block}
+  .img img{width:100%;height:100%;object-fit:contain;display:block}
+  .meta{padding:8px 10px}
+  .t{font-weight:600}
+  .s{color:var(--mute);font-size:12px}
+  .pal{display:flex;margin-top:6px;height:8px;border-radius:4px;overflow:hidden}
+  .pal i{flex:1}
+  .badges{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+  .badges span{background:var(--chip);border-radius:10px;padding:1px 8px;font-size:12px}
+  #dlg{border:none;border-radius:14px;padding:0;max-width:min(900px,95vw);background:var(--card);color:var(--ink)}
+  #dlg::backdrop{background:rgba(0,0,0,.6)}
+  #dlg .in{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;padding:16px}
+  #dlg img{width:100%;background:#9a9aa0;border-radius:10px}
+  @media(max-width:700px){#dlg .in{grid-template-columns:1fr}}
+  .sw{display:inline-block;width:22px;height:22px;border-radius:5px;border:1px solid var(--line);margin:2px}
+  .tabs{display:flex;gap:4px;margin-bottom:10px}
+  .tabs button{border-radius:8px 8px 0 0;border-bottom-width:2px}
+  #dash{display:none;padding:16px;gap:16px;grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+  body.dashboard #dash{display:grid}
+  body.dashboard main,body.dashboard .bar{display:none}
+  .kpis{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .kpi,.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .kpi b{display:block;font-size:26px}
+  .kpi span,.panel h3 small{color:var(--mute);font-size:12px;font-weight:400}
+  .panel h3{margin:0 0 10px;font-size:14px}
+  .panel.wide{grid-column:1/-1}
+  .row{display:grid;grid-template-columns:130px 1fr 44px;gap:8px;align-items:center;margin:3px 0;cursor:pointer;font-size:13px}
+  .row:hover .lbl{color:var(--acc)}
+  .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .track{background:var(--chip);border-radius:4px;height:16px}
+  .fill{background:var(--acc);height:100%;border-radius:4px;min-width:2px}
+  .val{text-align:right;color:var(--mute);font-variant-numeric:tabular-nums}
+  .cols{display:flex;align-items:flex-end;gap:6px;height:180px;padding-top:8px}
+  .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;cursor:pointer;font-size:12px}
+  .col .bar2{width:100%;background:var(--acc);border-radius:4px 4px 0 0;min-height:2px}
+  .col:hover .bar2{opacity:.75}
+  .col em{font-style:normal;color:var(--mute)}
+  #pk{display:none;padding:16px}
+  body.pokemon #pk{display:block}
+  body.pokemon main,body.pokemon .bar{display:none}
+  #pk .top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  #chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px;max-height:340px;overflow:auto;padding:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:12px}
+  #chips button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;border-radius:10px;font-size:12px;line-height:1.2;text-align:center}
+  #chips button img{width:64px;height:64px;object-fit:contain}
+  #chips button b{font-weight:600;word-break:break-word}
+  #chips button small{color:var(--mute)}
+  #chips button.on small{color:#fff}
+  #pkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  #pkhead{margin:4px 0 10px;font-size:16px;font-weight:600}
+  #cs{display:none;padding:16px}
+  body.scheme #cs{display:block}
+  body.scheme main,body.scheme .bar{display:none}
+  #cs .top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  #cs .box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px}
+  .sel{display:flex;gap:6px;flex-wrap:wrap;min-height:34px;align-items:center}
+  .sel .chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border-radius:16px;padding:3px 10px 3px 4px;cursor:pointer}
+  .sel .chip i,.pick i{display:inline-block;width:22px;height:22px;border-radius:50%;border:1px solid var(--line)}
+  .pick{display:flex;flex-wrap:wrap;gap:6px}
+  .pick i{cursor:pointer;border-radius:6px}
+  .pick i:hover{outline:2px solid var(--acc)}
+  .pick i.used{outline:2px solid var(--acc)}
+  #csgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .match{background:var(--acc)!important;color:#fff}
+  #ev{display:none;padding:16px}
+  body.evo #ev{display:block}
+  body.evo main,body.evo .bar{display:none}
+  #ev .top{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  #evgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .stg{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+  .stg b{font-weight:500;font-size:11px;border-radius:10px;padding:1px 7px;color:#fff}
+  .stg .s0{background:#3f8f5a}.stg .s1{background:#d98a1f}.stg .s2{background:#c2362f}
+  #ev .view button{border-radius:8px}
+  body.evo.evlist #evtree,body.evo:not(.evlist) #evlistbar,body.evo:not(.evlist) #evgrid{display:none}
+  #evtree{display:grid;gap:14px}
+  .fam{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;overflow-x:auto}
+  .famh{font-size:12px;color:var(--mute);margin-bottom:8px}
+  .tn{display:flex;align-items:center}
+  .kids{display:flex;flex-direction:column;margin-left:24px;position:relative}
+  .kids::before{content:'';position:absolute;left:-24px;top:50%;width:24px;border-top:2px solid var(--line)}
+  .kid{position:relative;padding:4px 0 4px 24px}
+  .kid::before{content:'';position:absolute;left:0;top:50%;width:24px;border-top:2px solid var(--line)}
+  .kid::after{content:'';position:absolute;left:0;top:0;bottom:0;border-left:2px solid var(--line)}
+  .kid:first-child::after{top:50%}.kid:last-child::after{bottom:50%}.kid:only-child::after{display:none}
+  .nd{width:96px;text-align:center;padding:6px 4px;border:2px solid var(--line);border-radius:12px;background:var(--bg);flex:none;position:relative}
+  .nd img{width:64px;height:64px;object-fit:contain}
+  .nd b{display:block;font-size:12px;line-height:1.2;word-break:break-word}
+  .nd small{display:block;font-size:11px;color:var(--mute)}
+  .nd.has{cursor:pointer;border-color:var(--acc)}
+  .nd.has:hover,.nd.picked{background:var(--acc);color:#fff}
+  .nd.has:hover small,.nd.picked small{color:#fff}
+  .nd:not(.has){opacity:.45}
+  .nd:not(.has) img{filter:grayscale(1)}
+  .nd .lvl{position:absolute;top:-8px;left:-8px;font-size:10px;font-weight:600;border-radius:8px;padding:0 6px;color:#fff}
+  .nd.s0 .lvl{background:#3f8f5a}.nd.s1 .lvl{background:#d98a1f}.nd.s2 .lvl{background:#c2362f}
+  .grow{animation:grow .5s cubic-bezier(.2,.9,.3,1.3) both;animation-delay:calc(var(--d) * .22s)}
+  .grow.kids,.grow.kid{transform-origin:left center}
+  @keyframes grow{from{opacity:0;transform:scale(.2)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.grow{animation:none}}
+  .fl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:12px}
+  .fl:empty{display:none}
+  code{font-size:12px;word-break:break-all;color:var(--mute)}
+</style>
+</head>
+<body>
+<header>
+  <h1>PokeLid Browser</h1>
+  <div class="tabs"><button id="tAll" class="on">All</button><button id="tDash">Dashboard</button><button id="tPoke">Pokémon</button><button id="tScheme">Color scheme</button><button id="tEvo">Evolution stage</button></div>
+  <div class="bar">
+    <input type="search" id="q" placeholder="Search Pokémon, place, prefecture…">
+    <select id="region"><option value="">All regions</option></select>
+    <select id="pref"><option value="">All prefectures</option></select>
+    <select id="np"><option value="">Any # Pokémon</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select>
+    <select id="nc"><option value="">Any # colors</option></select>
+    <select id="sort">
+      <option value="serial">Sort: Serial</option>
+      <option value="n">Sort: # of Pokémon</option>
+      <option value="region">Sort: Region</option>
+      <option value="pref">Sort: Prefecture</option>
+      <option value="pokemon">Sort: Pokémon name</option>
+      <option value="place">Sort: Place</option>
+      <option value="colors">Sort: # of colors</option>
+    </select>
+    <button id="dir" title="Toggle direction">↑ Asc</button>
+    <span class="count" id="count"></span>
+  </div>
+</header>
+<main id="grid"></main>
+<section id="dash"></section>
+<section id="ev">
+  <div class="top view"><b>View</b><button id="vTree" class="on">🌱 Evolution trees</button><button id="vList">Filter by stage</button></div>
+  <div class="top" id="treebar">
+    <input type="search" id="fq" placeholder="Search a family (e.g. Eevee)…">
+    <label><input type="checkbox" id="fevo" checked> Only lines that evolve</label>
+    <select id="fsort"><option value="dex">Sort: Pokédex no.</option><option value="lids">Sort: Most lids</option><option value="size">Sort: Biggest family</option></select>
+    <button id="fregrow">▶ Replay growth</button>
+    <span class="count" id="fcount"></span>
+  </div>
+  <div id="evtree"></div>
+  <div class="top" id="evlistbar">
+    <b>Stage</b>
+    <button data-st="0" class="on">Basic</button><button data-st="1">Stage 1</button><button data-st="2">Stage 2</button>
+    <select id="emode"><option value="any">Lid has a Pokémon of this stage</option><option value="all">All Pokémon on the lid are this stage</option><option value="mix">Lid mixes different stages</option></select>
+    <select id="egen"><option value="">Any generation</option></select>
+    <select id="esort"><option value="serial">Sort: Serial</option><option value="stage">Sort: Highest stage first</option><option value="n">Sort: # of Pokémon</option></select>
+    <span class="count" id="ecount"></span>
+  </div>
+  <div id="evgrid"></div>
+</section>
+<section id="cs">
+  <div class="box">
+    <div class="top">
+      <b>Your colors</b>
+      <input type="color" id="cpick" value="#d55c42" title="Pick any color">
+      <button id="cadd">+ Add color</button>
+      <button id="cclear">Clear</button>
+      <label>Tolerance <input type="range" id="ctol" min="10" max="90" value="40"> <span id="ctolv">40</span></label>
+      <label><input type="checkbox" id="cblack"> Ignore black outline</label>
+      <label><input type="checkbox" id="cmin"> Only lids with ≥1 match</label>
+      <span class="count" id="ccount"></span>
+    </div>
+    <div class="sel" id="csel"></div>
+  </div>
+  <div class="box"><div class="s" style="margin-bottom:6px">Common colors across all lids — click to add</div><div class="pick" id="cpal"></div></div>
+  <div id="csgrid"></div>
+</section>
+<section id="pk">
+  <div class="top"><input type="search" id="pq" placeholder="Type a Pokémon name…" autocomplete="off">
+    <select id="psort"><option value="name">Sort: Name A–Z</option><option value="count">Sort: Most lids</option></select>
+    <span class="count" id="pcount"></span></div>
+  <div id="chips"></div>
+  <div id="pkhead"></div>
+  <div id="pkgrid"></div>
+</section>
+<dialog id="dlg"></dialog>
+<script src="data.js"></script>
+<script>
+const L = window.LIDS, $ = id => document.getElementById(id);
+let desc = false;
+const uniq = a => [...new Set(a)];
+const regions = uniq(L.sort((a,b)=>a.ra-b.ra).map(x=>x.region));
+L.sort((a,b)=>a.serial-b.serial);
+regions.forEach(r => $('region').add(new Option(r, r)));
+const fillPref = () => {
+  const r = $('region').value, cur = $('pref').value;
+  $('pref').length = 1;
+  uniq(L.filter(x=>!r||x.region===r).map(x=>x.pref)).sort().forEach(p => $('pref').add(new Option(p, p)));
+  $('pref').value = [...$('pref').options].some(o=>o.value===cur) ? cur : '';
+};
+uniq(L.map(x=>x.colors)).sort((a,b)=>a-b).forEach(c => $('nc').add(new Option(c+' colors', c)));
+const key = {
+  serial:x=>x.serial, n:x=>x.n, colors:x=>x.colors,
+  region:x=>x.ra, pref:x=>x.pref, place:x=>x.place,
+  pokemon:x=>x.pokemon[0]
+};
+const cmp = (a,b) => typeof a === 'string' ? a.localeCompare(b) : a - b;
+const cardHTML = x => `
+    <div class="card" data-s="${x.serial}">
+      <span class="img"><img loading="lazy" src="thumbs/${x.file.replace('.png','.webp')}" alt=""></span>
+      <div class="meta">
+        <div class="t">#${String(x.serial).padStart(3,'0')} ${x.pokemon.join(' + ')}</div>
+        <div class="s">${x.place}, ${x.pref} · ${x.region}</div>
+        <div class="badges"><span>${x.n} Pokémon</span><span>${x.colors} colors</span></div>
+        <div class="pal">${x.palette.map(c=>`<i style="background:${c}"></i>`).join('')}</div>
+      </div>
+    </div>`;
+function render(){
+  const q = $('q').value.trim().toLowerCase(), r = $('region').value, p = $('pref').value,
+        np = $('np').value, nc = $('nc').value, s = $('sort').value;
+  let rows = L.filter(x =>
+    (!r || x.region===r) && (!p || x.pref===p) && (!np || x.n==np) && (!nc || x.colors==nc) &&
+    (!q || (x.pokemon.join(' ')+' '+x.place+' '+x.pref+' '+x.region).toLowerCase().includes(q)));
+  const k = key[s];
+  rows.sort((a,b) => (cmp(k(a),k(b)) || a.serial-b.serial) * (desc?-1:1));
+  $('count').textContent = rows.length + ' / ' + L.length + ' lids';
+  $('grid').innerHTML = rows.map(cardHTML).join('');
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('#grid,#pkgrid,#csgrid,#evgrid,.fl')) return;
+  const c = e.target.closest('.card'); if(!c) return;
+  const x = L.find(l=>l.serial==c.dataset.s); window.x_pal = x.palette;
+  $('dlg').innerHTML = `<div class="in">
+    <img src="preview/${encodeURI(x.file.replace('.png','.webp'))}" alt="">
+    <div>
+      <h2 style="margin-top:0">#${String(x.serial).padStart(3,'0')} ${x.pokemon.join(' + ')}</h2>
+      <p>${x.place}, ${x.pref}<br><span class="s">${x.region}</span></p>
+      <p>${x.n} Pokémon · ${x.colors} colors</p>
+      <div>${x.palette.map(c=>`<span class="sw" title="${c}" style="background:${c}"></span>`).join('')}</div>
+      <p><button onclick="target=[...x_pal]; dlg.close(); setTab('scheme'); schemeRender()">Find similar color schemes</button></p>
+      <p><code>${x.file}</code></p>
+      <button onclick="dlg.close()">Close</button>
+    </div></div>`;
+  $('dlg').showModal();
+});
+$('dlg').onclick = e => { if(e.target===$('dlg')) $('dlg').close(); };
+$('dir').onclick = () => { desc=!desc; $('dir').textContent = desc ? '↓ Desc' : '↑ Asc'; render(); };
+$('region').onchange = () => { fillPref(); render(); };
+['q','pref','np','nc','sort'].forEach(i => $(i).oninput = render);
+fillPref(); render();
+
+// ---- tabs + dashboard ----
+function setTab(t){
+  document.body.classList.toggle('dashboard', t==='dash');
+  document.body.classList.toggle('pokemon', t==='poke'); document.body.classList.toggle('scheme', t==='scheme'); document.body.classList.toggle('evo', t==='evo'); $('tEvo').classList.toggle('on', t==='evo'); $('tScheme').classList.toggle('on', t==='scheme');
+  $('tAll').classList.toggle('on', t==='all'); $('tDash').classList.toggle('on', t==='dash'); $('tPoke').classList.toggle('on', t==='poke');
+  try{localStorage.tab=t}catch(e){}
+}
+$('tAll').onclick = () => setTab('all');
+$('tDash').onclick = () => setTab('dash');
+$('tPoke').onclick = () => { setTab('poke'); $('pq').focus(); };
+// ---- evolution stage finder ----
+const STG = ['Basic','Stage 1','Stage 2'];
+let stSel = new Set([0]);
+const GENR = ['I','II','III','IV','V','VI','VII','VIII','IX'];
+for(let g=1; g<=9; g++) $('egen').add(new Option('Gen '+GENR[g-1], g));
+$('tEvo').onclick = () => { setTab('evo'); document.body.classList.contains('evlist') ? evoRender() : treeRender(); };
+function evoRender(){
+  document.querySelectorAll('#ev [data-st]').forEach(b=>b.classList.toggle('on', stSel.has(+b.dataset.st)));
+  const mode=$('emode').value, gen=$('egen').value;
+  let rows = L.filter(x=>{
+    const st=x.stages, inSel=st.map(v=>stSel.has(v));
+    if(gen && !x.pokemon.some(p=>PINFO[p].gen==gen)) return false;
+    if(!stSel.size) return true;
+    if(mode==='any') return inSel.some(Boolean);
+    if(mode==='all') return inSel.every(Boolean);
+    return new Set(st).size>1 && inSel.some(Boolean);
+  });
+  const sort=$('esort').value;
+  rows.sort((a,b)=> sort==='stage' ? Math.max(...b.stages)-Math.max(...a.stages)||a.serial-b.serial : sort==='n' ? b.n-a.n||a.serial-b.serial : a.serial-b.serial);
+  $('ecount').textContent = rows.length+' / '+L.length+' lids';
+  $('evgrid').innerHTML = rows.map(x=>cardHTML(x).replace('<div class="pal">',
+    `<div class="stg">${x.pokemon.map((p,i)=>`<b class="s${x.stages[i]}" title="${p}">${p.length>11?p.slice(0,10)+'…':p}: ${STG[x.stages[i]]}</b>`).join('')}</div><div class="pal">`)).join('');
+}
+document.querySelectorAll('#ev [data-st]').forEach(b=>b.onclick=()=>{ const v=+b.dataset.st; stSel.has(v)?stSel.delete(v):stSel.add(v); evoRender(); });
+['emode','egen','esort'].forEach(i=>$(i).oninput=evoRender);
+// ---- evolution trees ----
+const FAMS = window.FAMS;
+const walk = function*(t){ yield t; for(const c of t.c) yield* walk(c); };
+const speciesLids = {};
+L.forEach(x=>new Set(x.species).forEach(k=>(speciesLids[k]=speciesLids[k]||[]).push(x)));
+FAMS.forEach(t=>{ t.all=[...walk(t)]; t.lids=new Set(t.all.flatMap(n=>(speciesLids[n.k]||[]).map(x=>x.serial))).size; });
+let treeSel = {};   // family root key -> selected species key
+function nodeHTML(n,depth,root){
+  const ls = speciesLids[n.k]||[];
+  const kids = n.c.length ? `<div class="kids grow" style="--d:${depth+.5}">${n.c.map(c=>`<div class="kid grow" style="--d:${depth+.5}">${nodeHTML(c,depth+1,root)}</div>`).join('')}</div>` : '';
+  return `<div class="tn"><div class="nd s${Math.min(depth,2)} grow ${ls.length?'has':''} ${treeSel[root]===n.k?'picked':''}" style="--d:${depth}" data-root="${root}" data-k="${n.k}" title="${n.n}${ls.length?' — '+ls.length+' lid'+(ls.length>1?'s':''):' — no lid yet'}">
+    <span class="lvl">${STG[Math.min(depth,2)]}</span><img loading="lazy" src="pokemon_thumbs/${n.i}" alt=""><b>${n.n}</b><small>${ls.length?ls.length+' lid'+(ls.length>1?'s':''):'—'}</small></div>${kids}</div>`;
+}
+function treeRender(){
+  const q=$('fq').value.trim().toLowerCase(), only=$('fevo').checked, sort=$('fsort').value;
+  let fs = FAMS.filter(t=>(!only||t.all.length>1) && (!q||t.all.some(n=>n.n.toLowerCase().includes(q))));
+  fs = [...fs].sort(sort==='lids'?(a,b)=>b.lids-a.lids||a.d-b.d : sort==='size'?(a,b)=>b.all.length-a.all.length||a.d-b.d : (a,b)=>a.d-b.d);
+  $('fcount').textContent = fs.length+' families';
+  $('evtree').innerHTML = fs.map(t=>`<div class="fam" data-fam="${t.k}">
+    <div class="famh">#${String(t.d).padStart(3,'0')} ${t.n} line · ${t.all.length} Pokémon · ${t.lids} lid${t.lids!==1?'s':''}</div>
+    ${nodeHTML(t,0,t.k)}
+    <div class="fl"></div></div>`).join('');
+  fs.forEach(t=>{ if(treeSel[t.k]) showFamLids(t.k); });
+}
+function showFamLids(root){
+  const box=document.querySelector(`.fam[data-fam="${root}"] .fl`); if(!box) return;
+  box.innerHTML = treeSel[root] ? (speciesLids[treeSel[root]]||[]).map(cardHTML).join('') : '';
+}
+$('evtree').addEventListener('click', e=>{
+  const nd=e.target.closest('.nd.has'); if(!nd) return;
+  const r=nd.dataset.root, k=nd.dataset.k;
+  treeSel[r] = treeSel[r]===k ? '' : k;
+  document.querySelectorAll(`.fam[data-fam="${r}"] .nd`).forEach(el=>el.classList.toggle('picked', el.dataset.k===treeSel[r]));
+  showFamLids(r);
+});
+['fq','fevo','fsort'].forEach(i=>$(i).oninput=treeRender);
+$('fregrow').onclick = treeRender;
+function setView(v){
+  document.body.classList.toggle('evlist', v==='list');
+  $('vTree').classList.toggle('on', v==='tree'); $('vList').classList.toggle('on', v==='list');
+}
+$('vTree').onclick=()=>{ setView('tree'); treeRender(); };
+$('vList').onclick=()=>{ setView('list'); evoRender(); };
+// ---- color scheme finder ----
+const hex2 = h => [1,3,5].map(i=>parseInt(h.substr(i,2),16));
+const dist = (a,b) => Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+L.forEach(x => x.rgb = x.palette.map(hex2));
+let target = [];                       // hex strings
+$('tScheme').onclick = () => { setTab('scheme'); schemeRender(); };
+// canonical swatches: greedy cluster of every palette colour by frequency
+(function(){
+  const f = new Map(); L.forEach(x=>x.palette.forEach(c=>f.set(c,(f.get(c)||0)+1)));
+  const out = [];
+  [...f].sort((a,b)=>b[1]-a[1]).forEach(([c,n])=>{ const r=hex2(c); const o=out.find(k=>dist(k.rgb,r)<38); if(o) o.n+=n; else out.push({hex:c,rgb:r,n}); });
+  window.SW = out.sort((a,b)=>b.n-a.n).slice(0,48);
+})();
+function schemeRender(){
+  const tol = +$('ctol').value; $('ctolv').textContent = tol;
+  $('cpal').innerHTML = SW.map(k=>`<i data-c="${k.hex}" class="${target.includes(k.hex)?'used':''}" style="background:${k.hex}" title="${k.hex}"></i>`).join('');
+  $('csel').innerHTML = target.length ? target.map(c=>`<span class="chip" data-r="${c}" title="Remove"><i style="background:${c}"></i>${c} ✕</span>`).join('') : '<span class="s">Add colors above, then lids are ranked by how many of them they contain.</span>';
+  if(!target.length){ $('ccount').textContent=''; $('csgrid').innerHTML=''; return; }
+  const ign = $('cblack').checked, tr = target.map(hex2);
+  let rows = L.map(x => {
+    const pal = x.rgb.filter(p=>!(ign && p[0]<40&&p[1]<40&&p[2]<40));
+    const hit = tr.map(t => pal.some(p=>dist(p,t)<=tol));
+    return {x, m: hit.filter(Boolean).length, hit};
+  });
+  if($('cmin').checked) rows = rows.filter(r=>r.m>0);
+  rows.sort((a,b)=>b.m-a.m || a.x.colors-b.x.colors || a.x.serial-b.x.serial);
+  $('ccount').textContent = rows.length + ' lids · best match ' + (rows[0]?rows[0].m:0) + '/' + target.length;
+  $('csgrid').innerHTML = rows.map(r => cardHTML(r.x).replace('<div class="badges">',
+    `<div class="badges"><span class="${r.m===target.length?'match':''}">${r.m}/${target.length} match</span>`)).join('');
+}
+$('cadd').onclick = () => { const c=$('cpick').value.toLowerCase(); if(!target.includes(c)) target.push(c); schemeRender(); };
+$('cclear').onclick = () => { target=[]; schemeRender(); };
+$('cpal').onclick = e => { const i=e.target.closest('[data-c]'); if(!i) return; const c=i.dataset.c; target = target.includes(c) ? target.filter(t=>t!==c) : [...target,c]; schemeRender(); };
+$('csel').onclick = e => { const i=e.target.closest('[data-r]'); if(!i) return; target=target.filter(t=>t!==i.dataset.r); schemeRender(); };
+['ctol','cblack','cmin'].forEach(i=>$(i).oninput = schemeRender);
+// ---- pokemon finder ----
+const PK = count(L.flatMap(x=>x.pokemon),p=>p);   // [name, lids]
+let pSel = '';
+function pokeList(){
+  const q = $('pq').value.trim().toLowerCase();
+  let list = PK.filter(([n])=>n.toLowerCase().includes(q));
+  list.sort($('psort').value==='count' ? (a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]) : (a,b)=>a[0].localeCompare(b[0]));
+  if(q && list.length===1) pSel = list[0][0];
+  $('pcount').textContent = list.length + ' / ' + PK.length + ' Pokémon';
+  $('chips').innerHTML = list.map(([n,c])=>`<button data-p="${n}" class="${n===pSel?'on':''}" title="${n} — ${c} lid${c>1?'s':''}"><img loading="lazy" src="pokemon_thumbs/${PINFO[n].img}" alt=""><b>${n}</b><small>${c} lid${c>1?'s':''}</small></button>`).join('') || '<span class="s">No Pokémon found</span>';
+  const rows = pSel ? L.filter(x=>x.pokemon.includes(pSel)) : [];
+  $('pkhead').innerHTML = pSel ? `<img src="pokemon_thumbs/${PINFO[pSel].img}" alt="" style="width:48px;height:48px;object-fit:contain;vertical-align:middle;margin-right:8px">${pSel} — ${rows.length} lid${rows.length>1?'s':''}` : 'Pick a Pokémon above';
+  $('pkgrid').innerHTML = rows.map(cardHTML).join('');
+}
+$('chips').onclick = e => { const b=e.target.closest('button'); if(!b) return; pSel = pSel===b.dataset.p ? '' : b.dataset.p; pokeList(); };
+$('pq').oninput = () => { pSel=''; pokeList(); };
+$('psort').oninput = pokeList;
+pokeList();
+function count(arr,f){ const m=new Map(); arr.forEach(x=>{const k=f(x); m.set(k,(m.get(k)||0)+1)}); return [...m]; }
+const hbars = (data,field,max) => { const mx=Math.max(...data.map(d=>d[1]));
+  return data.slice(0,max||data.length).map(([k,v])=>`<div class="row" data-f="${field}" data-v="${k}" title="${k}: ${v}"><span class="lbl">${k}</span><span class="track"><div class="fill" style="width:${v/mx*100}%"></div></span><span class="val">${v}</span></div>`).join(''); };
+const vbars = (data,field,suffix) => { const mx=Math.max(...data.map(d=>d[1]));
+  return `<div class="cols">${data.map(([k,v])=>`<div class="col" data-f="${field}" data-v="${k}" title="${k}${suffix||''}: ${v}"><em>${v}</em><div class="bar2" style="height:${v/mx*140}px"></div><em>${k}</em></div>`).join('')}</div>`; };
+function dashboard(){
+  const byRegion = count(L,x=>x.region).sort((a,b)=>b[1]-a[1]);
+  const byPref = count(L,x=>x.pref).sort((a,b)=>b[1]-a[1]);
+  const byN = count(L,x=>x.n).sort((a,b)=>a[0]-b[0]);
+  const byC = count(L,x=>x.colors).sort((a,b)=>a[0]-b[0]);
+  const pk = count(L.flatMap(x=>x.pokemon),p=>p).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+  const avg = (L.reduce((a,x)=>a+x.colors,0)/L.length).toFixed(1);
+  const multi = L.filter(x=>x.n>=2).length;
+  const kpi = (b,s)=>`<div class="kpi"><b>${b}</b><span>${s}</span></div>`;
+  $('dash').innerHTML = `
+    <div class="kpis">${kpi(L.length,'PokéLids')}${kpi(new Set(L.flatMap(x=>x.pokemon)).size,'Distinct Pokémon')}${kpi(new Set(L.map(x=>x.pref)).size,'Prefectures')}${kpi(multi+' ('+Math.round(multi/L.length*100)+'%)','Lids with 2+ Pokémon')}${kpi(avg,'Avg colors per lid')}</div>
+    <div class="panel"><h3>Lids by number of Pokémon <small>click a bar to filter</small></h3>${vbars(byN,'np')}</div>
+    <div class="panel"><h3>Lids by number of colors <small>click a bar to filter</small></h3>${vbars(byC,'nc')}</div>
+    <div class="panel"><h3>Lids by region</h3>${hbars(byRegion,'region')}</div>
+    <div class="panel"><h3>Top 15 Pokémon <small>lids featuring it</small></h3>${hbars(pk,'p',15)}</div>
+    <div class="panel wide"><h3>Lids by prefecture</h3>${hbars(byPref,'pref')}</div>`;
+}
+$('dash').onclick = e => {
+  const r = e.target.closest('[data-f]'); if(!r) return;
+  if(r.dataset.f==='p'){ $('pq').value=''; pSel=r.dataset.v; pokeList(); setTab('poke'); return; }
+  ['q','region','pref','np','nc'].forEach(i=>$(i).value='');
+  fillPref(); $(r.dataset.f).value = r.dataset.v;
+  if(r.dataset.f==='pref') $('region').value = L.find(x=>x.pref===r.dataset.v).region, fillPref(), $('pref').value = r.dataset.v;
+  render(); setTab('all');
+};
+dashboard();
+schemeRender(); evoRender(); treeRender();
+try{ if(['dash','poke','scheme','evo'].includes(localStorage.tab)) setTab(localStorage.tab); }catch(e){}
+</script>
+</body>
+</html>
