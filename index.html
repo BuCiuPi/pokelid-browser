@@ -92,7 +92,7 @@
   .stg b{font-weight:500;font-size:11px;border-radius:10px;padding:1px 7px;color:#fff}
   .stg .s0{background:#3f8f5a}.stg .s1{background:#d98a1f}.stg .s2{background:#c2362f}
   #ev .view button{border-radius:8px}
-  body.evo.evlist #evtree,body.evo:not(.evlist) #evlistbar,body.evo:not(.evlist) #evgrid{display:none}
+  body.evo.evlist #evtree,body.evo.evlist #treebar,body.evo:not(.evlist) #evlistbar,body.evo:not(.evlist) #evgrid{display:none}
   #evtree{display:grid;gap:14px}
   .fam{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;overflow-x:auto}
   .famh{font-size:12px;color:var(--mute);margin-bottom:8px}
@@ -120,6 +120,8 @@
   @media (prefers-reduced-motion:reduce){.grow{animation:none}}
   .fl{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:12px}
   .fl:empty{display:none}
+  #evbar{position:sticky;top:var(--hh,106px);z-index:4;background:var(--bg);padding:8px 0 2px;border-bottom:1px solid var(--line);margin-bottom:12px}
+  #evbar .top{margin-bottom:8px}
   code{font-size:12px;word-break:break-all;color:var(--mute)}
 </style>
 </head>
@@ -149,6 +151,7 @@
 <main id="grid"></main>
 <section id="dash"></section>
 <section id="ev">
+  <div id="evbar">
   <div class="top view"><b>View</b><button id="vTree" class="on">🌱 Evolution trees</button><button id="vList">Filter by stage</button></div>
   <div class="top" id="treebar">
     <input type="search" id="fq" placeholder="Search a family (e.g. Eevee)…">
@@ -157,7 +160,6 @@
     <button id="fregrow">▶ Replay growth</button>
     <span class="count" id="fcount"></span>
   </div>
-  <div id="evtree"></div>
   <div class="top" id="evlistbar">
     <b>Stage</b>
     <button data-st="0" class="on">Basic</button><button data-st="1">Stage 1</button><button data-st="2">Stage 2</button>
@@ -166,6 +168,8 @@
     <select id="esort"><option value="serial">Sort: Serial</option><option value="stage">Sort: Highest stage first</option><option value="n">Sort: # of Pokémon</option></select>
     <span class="count" id="ecount"></span>
   </div>
+  </div>
+  <div id="evtree"></div>
   <div id="evgrid"></div>
 </section>
 <section id="cs">
@@ -265,6 +269,7 @@ function setTab(t){
   document.body.classList.toggle('pokemon', t==='poke'); document.body.classList.toggle('scheme', t==='scheme'); document.body.classList.toggle('evo', t==='evo'); $('tEvo').classList.toggle('on', t==='evo'); $('tScheme').classList.toggle('on', t==='scheme');
   $('tAll').classList.toggle('on', t==='all'); $('tDash').classList.toggle('on', t==='dash'); $('tPoke').classList.toggle('on', t==='poke');
   try{localStorage.tab=t}catch(e){}
+  if(window.syncHH) syncHH();
 }
 $('tAll').onclick = () => setTab('all');
 $('tDash').onclick = () => setTab('dash');
@@ -294,6 +299,8 @@ function evoRender(){
 }
 document.querySelectorAll('#ev [data-st]').forEach(b=>b.onclick=()=>{ const v=+b.dataset.st; stSel.has(v)?stSel.delete(v):stSel.add(v); evoRender(); });
 ['emode','egen','esort'].forEach(i=>$(i).oninput=evoRender);
+window.syncHH = () => document.documentElement.style.setProperty('--hh', document.querySelector('header').offsetHeight + 'px');
+syncHH(); addEventListener('resize', syncHH);
 // ---- evolution trees ----
 const FAMS = window.FAMS;
 const walk = function*(t){ yield t; for(const c of t.c) yield* walk(c); };
